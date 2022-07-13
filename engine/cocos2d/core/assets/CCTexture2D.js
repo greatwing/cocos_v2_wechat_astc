@@ -384,7 +384,7 @@ var Texture2D = cc.Class({
         Filter: Filter,
         _FilterIndex: FilterIndex,
         // predefined most common extnames
-        extnames: ['.png', '.jpg', '.jpeg', '.bmp', '.webp', '.pvr', '.pkm'],
+        extnames: ['.png', '.jpg', '.jpeg', '.bmp', '.webp', '.pvr', '.pkm', '.astc'],
 
         _parseExt (extIdStr, defaultFormat) {
             let device = cc.renderer.device;

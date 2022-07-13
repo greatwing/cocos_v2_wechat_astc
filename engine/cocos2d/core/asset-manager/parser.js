@@ -26,7 +26,6 @@
 /**
  * @module cc.AssetManager
  */
-
 const plistParser = require('../platform/CCSAXParser').plistParser;
 const js = require('../platform/js');
 const deserialize = require('./deserialize');
@@ -263,6 +262,114 @@ var parser = {
         }
     })(),
 
+    /**
+     * !#zh
+     * 解析 astc 文件
+     */
+    parseASTCTex: (function() {
+        const ASTC_MAGIC = 0x5CA1AB13;
+        const ASTC_HEADER_LENGTH = 16; // The header length
+        const ASTC_HEADER_MAGIC = 4;
+        const ASTC_HEADER_BLOCKDIM = 3;
+        const ASTC_HEADER_SIZE_X_BEGIN = 7;
+        const ASTC_HEADER_SIZE_Y_BEGIN = 10;
+        const ASTC_HEADER_SIZE_Z_BEGIN = 13;
+        const PixelFormat = {
+            RGBA_ASTC_4x4 : 30,
+            RGBA_ASTC_5x4 : 31,
+            RGBA_ASTC_5x5 : 32,
+            RGBA_ASTC_6x5 : 33,
+            RGBA_ASTC_6x6 : 34,
+            RGBA_ASTC_8x5 : 35,
+            RGBA_ASTC_8x6 : 36,
+            RGBA_ASTC_8x8 : 37,
+            RGBA_ASTC_10x5 : 38,
+            RGBA_ASTC_10x6 : 39,
+            RGBA_ASTC_10x8 : 40,
+            RGBA_ASTC_10x10 : 41,
+            RGBA_ASTC_12x10 : 42,
+            RGBA_ASTC_12x12 : 43,
+        }
+        function getASTCFormat (xdim,ydim) {
+            if (xdim === 4) {
+                return PixelFormat.RGBA_ASTC_4x4;
+            } else if (xdim === 5) {
+                if (ydim === 4) {
+                    return PixelFormat.RGBA_ASTC_5x4;
+                } else {
+                    return PixelFormat.RGBA_ASTC_5x5;
+                }
+            } else if (xdim === 6) {
+                if (ydim === 5) {
+                    return PixelFormat.RGBA_ASTC_6x5;
+                } else {
+                    return PixelFormat.RGBA_ASTC_6x6;
+                }
+            } else if (xdim === 8) {
+                if (ydim === 5) {
+                    return PixelFormat.RGBA_ASTC_8x5;
+                } else if (ydim === 6) {
+                    return PixelFormat.RGBA_ASTC_8x6;
+                } else {
+                    return PixelFormat.RGBA_ASTC_8x8;
+                }
+            } else if (xdim === 10) {
+                if (ydim === 5) {
+                    return PixelFormat.RGBA_ASTC_10x5;
+                } else if (ydim === 6) {
+                    return PixelFormat.RGBA_ASTC_10x6;
+                } else if (ydim === 8) {
+                    return PixelFormat.RGBA_ASTC_10x8;
+                } else {
+                    return PixelFormat.RGBA_ASTC_10x10;
+                }
+            } else {
+                if (ydim === 10) {
+                    return PixelFormat.RGBA_ASTC_12x10;
+                } else {
+                    return PixelFormat.RGBA_ASTC_12x12;
+                }
+            }
+        }
+        return function (file, options, onComplete) {
+            let err = null, out = null;
+            try {
+                
+                let buffer = file instanceof ArrayBuffer ? file : file.buffer;
+                let header = new Uint8Array(buffer);
+                const magicval = header[0] + (header[1] << 8) + (header[2] << 16) + (header[3] << 24);
+                if (magicval !== ASTC_MAGIC) {
+                    console.error((new Error('!!!!!!!!!!!!!!')).stack)
+                    return new Error('Invalid magic number in ASTC header');
+                }
+                const xdim = header[ASTC_HEADER_MAGIC];
+                const ydim = header[ASTC_HEADER_MAGIC + 1];
+                const zdim = header[ASTC_HEADER_MAGIC + 2];
+                if ((xdim < 3 || xdim > 6 || ydim < 3 || ydim > 6 || zdim < 3 || zdim > 6) &&
+                    (xdim < 4 || xdim === 7 || xdim === 9 || xdim === 11 || xdim > 12 ||
+                    ydim < 4 || ydim === 7 || ydim === 9 || ydim === 11 || ydim > 12 || zdim !== 1)) {
+                    return new Error('Invalid block number in ASTC header');
+                }
+                const format = getASTCFormat(xdim,ydim);
+
+                const xsize = header[ASTC_HEADER_SIZE_X_BEGIN] + (header[ASTC_HEADER_SIZE_X_BEGIN + 1] << 8) + (header[ASTC_HEADER_SIZE_X_BEGIN + 2] << 16);
+                const ysize = header[ASTC_HEADER_SIZE_Y_BEGIN] + (header[ASTC_HEADER_SIZE_Y_BEGIN + 1] << 8) + (header[ASTC_HEADER_SIZE_Y_BEGIN + 2] << 16);
+                const zsize = header[ASTC_HEADER_SIZE_Z_BEGIN] + (header[ASTC_HEADER_SIZE_Z_BEGIN + 1] << 8) + (header[ASTC_HEADER_SIZE_Z_BEGIN + 2] << 16);
+                let astcData = new Uint8Array(buffer, ASTC_HEADER_LENGTH);
+                out = {
+                    _data: astcData,
+                    _compressed: true,
+                    width: xsize,
+                    height: ysize,
+                    format: format
+                };
+            } catch (e) {
+                err = e
+            }
+            onComplete && onComplete(err, out);
+        }
+    })(),
+
     /*
      * !#en
      * Parse plist file
@@ -426,6 +533,7 @@ var parsers = {
     '.image' : parser.parseImage,
     '.pvr' : parser.parsePVRTex,
     '.pkm' : parser.parsePKMTex,
+    '.astc' : parser.parseASTCTex,
     // Audio
     '.mp3' : parser.parseAudio,
     '.ogg' : parser.parseAudio,

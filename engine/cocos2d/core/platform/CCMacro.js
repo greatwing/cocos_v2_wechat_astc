@@ -398,7 +398,7 @@ Object.defineProperty(cc.macro, 'ROTATE_ACTION_CCW', {
     }
 });
 
-let SUPPORT_TEXTURE_FORMATS = ['.pkm', '.pvr', '.webp', '.jpg', '.jpeg', '.bmp', '.png'];
+let SUPPORT_TEXTURE_FORMATS = ['.astc', '.pkm', '.pvr', '.webp', '.jpg', '.jpeg', '.bmp', '.png'];
 
 /**
  * !#en
