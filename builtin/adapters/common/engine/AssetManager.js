@@ -225,10 +225,25 @@ let parsePKMTex = function (file, options, onComplete) {
 };
 
 const originParseASTCTex = parser.parseASTCTex;
+const pako = require('./pako_inflate');
+function isGzip(data) {
+	if(data instanceof ArrayBuffer) {
+		let header = new Uint8Array(data)
+		if(header.byteLength >= 2) {
+			if(header[0] == 31 && header[1] == 139) {
+				return true
+			}
+		}
+	}
+	return false
+}
 let parseASTCTex = function (file, options, onComplete) {
     readArrayBuffer(file, function (err, data) {
         if (err) return onComplete(err);
-        originParseASTCTex(data, options, onComplete);
+		if(isGzip(data)) {
+			data = pako.inflate(data);
+		}
+		originParseASTCTex(data, options, onComplete);
     });
 };
 
