@@ -5,8 +5,10 @@ let hasModifiedCanvasPrototype = false
 let hasInit2DContextConstructor = false
 let hasInitWebGLContextConstructor = false
 
+let firstCanvas = true;
 export default function Canvas() {
-  const canvas = wx.createCanvas()
+  const canvas = firstCanvas && wx.__first__canvas ? wx.__first__canvas:wx.createCanvas();
+  firstCanvas = false;
 
   canvas.type = 'canvas'
 
