@@ -644,6 +644,7 @@ export default class Device {
       'WEBGL_compressed_texture_s3tc',
       'WEBGL_depth_texture',
       'WEBGL_draw_buffers',
+      'WEBGL_compressed_texture_astc',
     ]);
     this._initCaps();
     this._initStates();

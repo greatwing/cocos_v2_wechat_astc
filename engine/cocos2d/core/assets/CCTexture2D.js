@@ -417,6 +417,8 @@ var Texture2D = cc.Class({
                     }
                     else if (tmpExt === '.webp' && !cc.sys.capabilities.webp) {
                         continue;
+                    } else if ( tmpExt === '.astc' && !device.ext('WEBGL_compressed_texture_astc'))  {
+                        continue;
                     }
 
                     bestIndex = index;
