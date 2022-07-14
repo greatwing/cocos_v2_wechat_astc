@@ -413,7 +413,7 @@ export function glFilter(gl, filter, mipFilter = -1) {
  * @param {TEXTURE_FMT_*} fmt
  */
 export function glTextureFmt(fmt) {
-  console.log("@@@@@@@@@@@@@@:", JSON.stringify(_textureFmtGL))
+  // console.log("@@@@@@@@@@@@@@:", JSON.stringify(_textureFmtGL))
   let result = _textureFmtGL[fmt];
   if (result === undefined) {
     console.warn(`Unknown TEXTURE_FMT: ${fmt}`);
