@@ -224,6 +224,14 @@ let parsePKMTex = function (file, options, onComplete) {
     });
 };
 
+const originParseASTCTex = parser.parseASTCTex;
+let parseASTCTex = function (file, options, onComplete) {
+    readArrayBuffer(file, function (err, data) {
+        if (err) return onComplete(err);
+        originParseASTCTex(data, options, onComplete);
+    });
+};
+
 function parsePlist (url, options, onComplete) {
     readText(url, function (err, file) {
         var result = null;
@@ -240,6 +248,7 @@ downloader.downloadDomAudio = downloadDomAudio;
 downloader.downloadScript = downloadScript;
 parser.parsePVRTex = parsePVRTex;
 parser.parsePKMTex = parsePKMTex;
+parser.parseASTCTex = parseASTCTex;
 
 downloader.register({
     '.js' : downloadScript,
@@ -262,6 +271,7 @@ downloader.register({
     '.webp' : downloadImage,
     '.pvr': downloadAsset,
     '.pkm': downloadAsset,
+    '.astc': downloadAsset,
 
     '.font': downloadAsset,
     '.eot': downloadAsset,
@@ -315,6 +325,7 @@ parser.register({
     '.webp' : downloader.downloadDomImage,
     '.pvr': parsePVRTex,
     '.pkm': parsePKMTex,
+    '.astc': parseASTCTex,
 
     '.font': loadFont,
     '.eot': loadFont,
