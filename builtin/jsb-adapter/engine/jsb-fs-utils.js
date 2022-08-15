@@ -35,7 +35,7 @@ var fsUtils = {
 
         jsb_downloader = new jsb.Downloader({
             countOfMaxProcessingTasks: jsbDownloaderMaxTasks || 32,
-            timeoutInSeconds: jsbDownloaderTimeout || 30,
+            timeoutInSeconds: jsbDownloaderTimeout || 3000,
             tempFileNameSuffix: '.tmp'
         });
 
@@ -148,7 +148,7 @@ var fsUtils = {
 
     readFile (filePath, encoding, onComplete) {
         var content = null, err = null;
-        if (encoding === 'utf-8' || encoding === 'utf8') {
+        if ((encoding === 'utf-8' || encoding === 'utf8') && !filePath.endsWith('.astc')) {
             content = fs.getStringFromFile(filePath);
         }
         else {

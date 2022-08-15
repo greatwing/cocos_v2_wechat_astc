@@ -33,7 +33,7 @@ THE SOFTWARE.
 #include "base/CCData.h"
 #include "base/ccConfig.h" // CC_USE_JPEG, CC_USE_TIFF, CC_USE_WEBP
 #include "base/ccUtils.h"
-
+#include "base/astc.h"
 #ifndef MIN
 #define MIN(x,y) (((x) > (y)) ? (y) : (x))
 #endif  // MIN
@@ -128,6 +128,23 @@ namespace
         PixelFormatInfoMapValue(Image::PixelFormat::PVRTC2A, Image::PixelFormatInfo(GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG, 0xFFFFFFFF, 0xFFFFFFFF, 2, true, true)),
         PixelFormatInfoMapValue(Image::PixelFormat::PVRTC4, Image::PixelFormatInfo(GL_COMPRESSED_RGB_PVRTC_4BPPV1_IMG, 0xFFFFFFFF, 0xFFFFFFFF, 4, true, false)),
         PixelFormatInfoMapValue(Image::PixelFormat::PVRTC4A, Image::PixelFormatInfo(GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG, 0xFFFFFFFF, 0xFFFFFFFF, 4, true, true)),
+#endif
+
+#ifdef GL_COMPRESSED_RGBA_ASTC_4x4_KHR
+        PixelFormatInfoMapValue(Image::PixelFormat::ASTC_RGBA_4x4, Image::PixelFormatInfo(GL_COMPRESSED_RGBA_ASTC_4x4_KHR, 0xFFFFFFFF, 0xFFFFFFFF, 8, true, true)),
+        PixelFormatInfoMapValue(Image::PixelFormat::ASTC_RGBA_5x4, Image::PixelFormatInfo(GL_COMPRESSED_RGBA_ASTC_5x4_KHR, 0xFFFFFFFF, 0xFFFFFFFF, 8, true, true)),
+        PixelFormatInfoMapValue(Image::PixelFormat::ASTC_RGBA_5x5, Image::PixelFormatInfo(GL_COMPRESSED_RGBA_ASTC_5x5_KHR, 0xFFFFFFFF, 0xFFFFFFFF, 8, true, true)),
+        PixelFormatInfoMapValue(Image::PixelFormat::ASTC_RGBA_6x5, Image::PixelFormatInfo(GL_COMPRESSED_RGBA_ASTC_6x5_KHR, 0xFFFFFFFF, 0xFFFFFFFF, 8, true, true)),
+        PixelFormatInfoMapValue(Image::PixelFormat::ASTC_RGBA_6x6, Image::PixelFormatInfo(GL_COMPRESSED_RGBA_ASTC_6x6_KHR, 0xFFFFFFFF, 0xFFFFFFFF, 8, true, true)),
+        PixelFormatInfoMapValue(Image::PixelFormat::ASTC_RGBA_8x5, Image::PixelFormatInfo(GL_COMPRESSED_RGBA_ASTC_8x5_KHR, 0xFFFFFFFF, 0xFFFFFFFF, 8, true, true)),
+        PixelFormatInfoMapValue(Image::PixelFormat::ASTC_RGBA_8x6, Image::PixelFormatInfo(GL_COMPRESSED_RGBA_ASTC_8x6_KHR, 0xFFFFFFFF, 0xFFFFFFFF, 8, true, true)),
+        PixelFormatInfoMapValue(Image::PixelFormat::ASTC_RGBA_8x8, Image::PixelFormatInfo(GL_COMPRESSED_RGBA_ASTC_8x8_KHR, 0xFFFFFFFF, 0xFFFFFFFF, 8, true, true)),
+        PixelFormatInfoMapValue(Image::PixelFormat::ASTC_RGBA_10x5, Image::PixelFormatInfo(GL_COMPRESSED_RGBA_ASTC_10x5_KHR, 0xFFFFFFFF, 0xFFFFFFFF, 8, true, true)),
+        PixelFormatInfoMapValue(Image::PixelFormat::ASTC_RGBA_10x6, Image::PixelFormatInfo(GL_COMPRESSED_RGBA_ASTC_10x6_KHR, 0xFFFFFFFF, 0xFFFFFFFF, 8, true, true)),
+        PixelFormatInfoMapValue(Image::PixelFormat::ASTC_RGBA_10x8, Image::PixelFormatInfo(GL_COMPRESSED_RGBA_ASTC_10x8_KHR, 0xFFFFFFFF, 0xFFFFFFFF, 8, true, true)),
+        PixelFormatInfoMapValue(Image::PixelFormat::ASTC_RGBA_10x10, Image::PixelFormatInfo(GL_COMPRESSED_RGBA_ASTC_10x10_KHR, 0xFFFFFFFF, 0xFFFFFFFF, 8, true, true)),
+        PixelFormatInfoMapValue(Image::PixelFormat::ASTC_RGBA_12x10, Image::PixelFormatInfo(GL_COMPRESSED_RGBA_ASTC_12x10_KHR, 0xFFFFFFFF, 0xFFFFFFFF, 8, true, true)),
+        PixelFormatInfoMapValue(Image::PixelFormat::ASTC_RGBA_12x12, Image::PixelFormatInfo(GL_COMPRESSED_RGBA_ASTC_12x12_KHR, 0xFFFFFFFF, 0xFFFFFFFF, 8, true, true)),
 #endif
 
 #ifdef GL_ETC1_RGB8_OES
@@ -599,6 +616,9 @@ bool Image::initWithImageData(const unsigned char * data, ssize_t dataLen)
         case Format::S3TC:
             ret = initWithS3TCData(unpackedData, unpackedLen);
             break;
+        case Format::ASTC:
+            ret = initWithASTCData(unpackedData, unpackedLen);
+            break;
         default:
             {
                 // load and detect image format
@@ -649,6 +669,9 @@ bool Image::isEtc2(const unsigned char * data, ssize_t dataLen)
     return etc2_pkm_is_valid((etc2_byte*)data) ? true : false;
 }
 
+bool Image::isASTC(const unsigned char* data, ssize_t /*dataLen*/) {
+    return astcIsValid(const_cast<astc_byte*>(data));
+}
 
 bool Image::isS3TC(const unsigned char * data, ssize_t /*dataLen*/)
 {
@@ -748,12 +771,60 @@ Image::Format Image::detectFormat(const unsigned char * data, ssize_t dataLen)
     {
         return Format::S3TC;
     }
+    else if (isASTC(data, dataLen))
+    {
+        return Format::ASTC;
+    }
     else
     {
         return Format::UNKNOWN;
     }
 }
 
+Image::PixelFormat Image::getASTCFormat(const unsigned char * pHeader) const
+{
+    int xdim = pHeader[ASTC_HEADER_MAGIC];
+    int ydim = pHeader[ASTC_HEADER_MAGIC + 1];
+    if (xdim == 4) {
+        return Image::PixelFormat::ASTC_RGBA_4x4;
+    } else if (xdim == 5) {
+        if (ydim == 4) {
+            return Image::PixelFormat::ASTC_RGBA_5x4;
+        } else {
+            return Image::PixelFormat::ASTC_RGBA_5x5;
+        }
+    } else if (xdim == 6) {
+        if (ydim == 5) {
+            return Image::PixelFormat::ASTC_RGBA_6x5;
+        } else {
+            return Image::PixelFormat::ASTC_RGBA_6x6;
+        }
+    } else if (xdim == 8) {
+        if (ydim == 5) {
+            return Image::PixelFormat::ASTC_RGBA_8x5;
+        } else if (ydim == 6) {
+            return Image::PixelFormat::ASTC_RGBA_8x6;
+        } else {
+            return Image::PixelFormat::ASTC_RGBA_8x8;
+        }
+    } else if (xdim == 10) {
+        if (ydim == 5) {
+            return Image::PixelFormat::ASTC_RGBA_10x5;
+        } else if (ydim == 6) {
+            return Image::PixelFormat::ASTC_RGBA_10x6;
+        } else if (ydim == 8) {
+            return Image::PixelFormat::ASTC_RGBA_10x8;
+        } else {
+            return Image::PixelFormat::ASTC_RGBA_10x10;
+        }
+    } else {
+        if (ydim == 10) {
+            return Image::PixelFormat::ASTC_RGBA_12x10;
+        } else {
+            return Image::PixelFormat::ASTC_RGBA_12x12;
+        }
+    }
+}
 int Image::getBitPerPixel() const
 {
     return getPixelFormatInfoMap().at(_renderFormat).bpp;
@@ -1603,6 +1674,36 @@ bool Image::initWithETCData(const unsigned char * data, ssize_t dataLen)
 #endif
 
     return false;
+}
+
+bool Image::initWithASTCData(const unsigned char* data, ssize_t dataLen)
+{
+    const auto* header = static_cast<const astc_byte*>(data);
+
+    //check the data
+    if (!astcIsValid(header)) {
+        return false;
+    }
+
+    _width = astcGetWidth(header);
+    _height = astcGetHeight(header);
+
+    if (0 == _width || 0 == _height) {
+        return false;
+    }
+    assert(Configuration::getInstance()->supportsASTC());
+
+    _renderFormat = getASTCFormat(header);
+
+    _dataLen = dataLen - ASTC_HEADER_SIZE;
+    _data = static_cast<unsigned char*>(malloc(_dataLen * sizeof(unsigned char)));
+    memcpy(_data, static_cast<const unsigned char*>(data) + ASTC_HEADER_SIZE, _dataLen);
+    // if (_data == nullptr) {
+    //     CCLOG("initWithASTCData: ERROR: Image _data is null!");
+    //     return false;
+    // }
+
+    return true;
 }
 
 bool Image::initWithETC2Data(const unsigned char * data, ssize_t dataLen)
