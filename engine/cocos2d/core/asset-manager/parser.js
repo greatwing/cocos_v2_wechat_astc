@@ -350,6 +350,7 @@ var parser = {
                     ydim < 4 || ydim === 7 || ydim === 9 || ydim === 11 || ydim > 12 || zdim !== 1)) {
                     return new Error('Invalid block number in ASTC header');
                 }
+                console.log("astc!!!")
                 const format = getASTCFormat(xdim,ydim);
 
                 const xsize = header[ASTC_HEADER_SIZE_X_BEGIN] + (header[ASTC_HEADER_SIZE_X_BEGIN + 1] << 8) + (header[ASTC_HEADER_SIZE_X_BEGIN + 2] << 16);
